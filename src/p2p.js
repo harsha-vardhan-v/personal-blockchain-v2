@@ -19,9 +19,15 @@ const config = defaults({
 
 const swarm = new Swarm(config);
 
+let registeredMiners = [];
+let lastBlockMinedBy = null;
+
 let MessageType = {
     REQUEST_BLOCK: 'requestBlock',
-    RECEIVE_NEXT_BLOCK: 'latestBlock',
+    RECEIVE_NEXT_BLOCK: 'receiveNextBlock',
+    RECEIVE_ALL_BLOCK: 'receiveNewBlock',
+    REQUEST_ALL_REGISTERED_MINERS: 'requestAllRegisteredMiners',
+    REGISTER_MINER: 'registerMiner',
 };
 
 (async () => {
@@ -56,7 +62,7 @@ let MessageType = {
 
             switch (msg.type) {
                 case MessageType.REQUEST_BLOCK:
-                    console.log('----------- REQUEST_BLOCK-------------');
+                    console.log('----------- REQUEST_BLOCK -------------');
                     let requestedIndex = (JSON.parse(JSON.stringify(msg.data)))
                         .index;
                     let requestedBlock = chain.getBlock(requestedIndex);
@@ -69,12 +75,12 @@ let MessageType = {
                         );
                     } else {
                         console.log('No block found @ index: '+requestedIndex);
-                        console.log('----------- REQUEST_BLOCK-------------');
+                        console.log('----------- REQUEST_BLOCK -------------');
                     }
                     break;
 
                 case MessageType.RECEIVE_NEXT_BLOCK:
-                    console.log('----------- RECEIVE_NEXT_BLOCK-------------');
+                    console.log('----------- RECEIVE_NEXT_BLOCK -------------');
                     
                     chain.addBlock(JSON.parse(JSON.stringify(msg.data)));
                     console.log(JSON.stringify(chain.blockchain));
@@ -83,8 +89,22 @@ let MessageType = {
                     console.log('-- request next block @index: '+nextBlockIndex);
                     writeMessageToPeerToId(MessageType.REQUEST_BLOCK, { index: nextBlockIndex });
 
-                    console.log('----------- RECEIVE_NEXT_BLOCK-------------');
-                    break;            
+                    console.log('----------- RECEIVE_NEXT_BLOCK -------------');
+                    break;
+                    
+                case MessageType.REQUEST_ALL_REGISTERED_MINERS:
+                    console.log('----------- REQUEST_ALL_REGISTERED_MINERS -------------'+msg.to);
+                    writeMessageToPeers(MessageType.REGISTER_MINER, registeredMiners);
+                    registeredMiners = JSON.parse(JSON.stringify(msg.data));
+                    console.log('------------- REQUEST_ALL_REGISTERED_MINERS -------------' + msg.to);
+                    break;
+
+                case MessageType.REGISTER_MINER:
+                    console.log('------------- REGISTER_MINER -------------'+msg.to);
+                    let miners = JSON.stringify(msg.data);
+                    registeredMiners = JSON.parse(miners);
+                    console.log(registeredMiners);
+                    console.log('------------- REGISTER_MINER -------------' + msg.to);
                 }
         });
 
@@ -106,10 +126,26 @@ let MessageType = {
     });
 }) ();
 
+//Request new block every 5 seconds
 setTimeout(() => {
     writeMessageToPeers(MessageType.REQUEST_BLOCK,
         { index: getLatestBlock().index + 1 });
 }, 5000);
+
+//Request all registered miners every 5 seconds
+setTimeout(() => {
+    writeMessageToPeers(MessageType.REQUEST_ALL_REGISTERED_MINERS, null);
+}, 5000);
+
+//Send my list of miners to other peers every 7 seconds
+setTimeout(() => {
+    registeredMiners.push(myPeerId.toString('hex'));
+    console.log('----------- Register my miner -----------');
+    console.log(registeredMiners);
+
+    writeMessageToPeers(MessageType.REGISTER_MINER, registeredMiners);
+    console.log('----------- Register my miner -----------');
+}, 7000);
 
 const writeMessageToPeers = (type, data) => {
     for (let id in peers) {

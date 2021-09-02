@@ -4,6 +4,7 @@
   "description": "A javascript blockchain API from scratch with some added features",
   "main": "index.js",
   "scripts": {
+    "peer": "node src/p2p.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -24,6 +25,7 @@
     "circular-append-file": "^1.0.1",
     "connections": "^1.4.2",
     "core-util-is": "^1.0.2",
+    "cron": "^1.8.2",
     "crypto": "^1.0.1",
     "dat-swarm-defaults": "^1.0.2",
     "debug": "^4.3.2",
