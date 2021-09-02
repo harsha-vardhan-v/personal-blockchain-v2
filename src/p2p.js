@@ -1,3 +1,4 @@
+const { CronJob } = require('cron');
 const crypto = require('crypto'),
     Swarm = require('discovery-swarm'),
     defaults = require('dat-swarm-defaults'),
@@ -25,6 +26,7 @@ let lastBlockMinedBy = null;
 let MessageType = {
     REQUEST_BLOCK: 'requestBlock',
     RECEIVE_NEXT_BLOCK: 'receiveNextBlock',
+    RECEIVE_NEW_BLOCK: 'receiveNewBlock',
     RECEIVE_ALL_BLOCK: 'receiveNewBlock',
     REQUEST_ALL_REGISTERED_MINERS: 'requestAllRegisteredMiners',
     REGISTER_MINER: 'registerMiner',
@@ -91,6 +93,15 @@ let MessageType = {
 
                     console.log('----------- RECEIVE_NEXT_BLOCK -------------');
                     break;
+
+                case MessageType.RECEIVE_NEW_BLOCK:
+                    if (msg.to === myPeerId.toString('hex') && msg.from !== myPeerId.toString('hex')) {
+                        console.log('----------- RECEIVE_NEW_BLOCK -----------'+msg.to);
+                        chain.addBlock(JSON.parse(JSON.stringify(msg.data)));
+                        console.log(JSON.stringify(chain.blockchain));
+                        console.log('----------- RECEIVE_NEW_BLOCK -----------' + msg.to);
+                    }
+                    break;
                     
                 case MessageType.REQUEST_ALL_REGISTERED_MINERS:
                     console.log('----------- REQUEST_ALL_REGISTERED_MINERS -------------'+msg.to);
@@ -105,6 +116,7 @@ let MessageType = {
                     registeredMiners = JSON.parse(miners);
                     console.log(registeredMiners);
                     console.log('------------- REGISTER_MINER -------------' + msg.to);
+                    break;
                 }
         });
 
@@ -154,6 +166,38 @@ setTimeout(() => {
     writeMessageToPeers(MessageType.REGISTER_MINER, registeredMiners);
     console.log('----------- Register my miner -----------');
 }, 7000);
+
+//Mine a block every 30 seconds
+const job = new CronJob('30 * * * * *', () => {
+    let index = 0;
+
+    if (lastBlockMinedBy) {
+        let newIndex = registeredMiners.indexOf(lastBlockMinedBy);
+        index = (newIndex + 1 > registeredMiners.length-1) > 0
+                ? 0
+                : newIndex + 1;
+    }
+
+    //Calculating who has to mine the next block
+    lastBlockMinedBy = registeredMiners[index];
+
+    console.log('-- REQUESTING NEW BLOCK FROM: '+registeredMiners[index]+', index: '+index);
+    console.log(JSON.stringify(registeredMiners));
+
+    if (registeredMiners[index] === myPeerId.toString('hex')) {
+        console.log('----------- create next block -----------');
+
+        let newBlock = chain.generateNextBlock(null);
+        chain.addBlock(newBlock);
+        console.log(JSON.stringify(newBlock));
+        writeMessageToPeerToId(MessageType.RECEIVE_NEXT_BLOCK, newBlock);
+        console.log(JSON.stringify(chain.blockchain));
+
+        console.log('----------- create next block -----------');
+    }
+});
+
+job.start();
 
 const writeMessageToPeers = (type, data) => {
     for (let id in peers) {
