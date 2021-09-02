@@ -113,6 +113,14 @@ let MessageType = {
 
             if (peers[peerId].seq === seq) {
                 delete peers[peerId];
+                console.log('--- registeredMiners before: '+JSON.stringify(registeredMiners));
+                let index = registeredMiners.indexOf(peerId);
+
+                if (index > -1) {
+                    registeredMiners.splice(index, 1);
+                }
+
+                console.log('--- registeredMiners end: ' + JSON.stringify(registeredMiners));
             }
         });
 
