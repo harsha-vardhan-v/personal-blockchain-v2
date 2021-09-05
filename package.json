@@ -4,6 +4,7 @@
   "description": "A javascript blockchain API from scratch with some added features",
   "main": "index.js",
   "scripts": {
+    "start": "node src/index.js",
     "peer": "node src/p2p.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -37,6 +38,7 @@
     "dns-socket": "^4.2.2",
     "elliptic": "^6.5.4",
     "end-of-stream": "^1.4.4",
+    "express": "^4.17.1",
     "extend": "^3.0.2",
     "get-port": "^5.1.1",
     "inherit": "^2.2.7",
