@@ -45,6 +45,7 @@
     "k-rpc": "^5.1.0",
     "k-rpc-socket": "^1.11.1",
     "length-prefixed-message": "^3.0.4",
+    "level": "^7.0.0",
     "minimist": "^1.2.5",
     "moment": "^2.29.1",
     "ms": "^2.1.3",

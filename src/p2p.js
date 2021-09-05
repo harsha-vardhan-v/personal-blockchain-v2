@@ -12,6 +12,7 @@ let connSeq = 0;
 let channel = 'myBlockchain';
 
 const myPeerId = crypto.randomBytes(32);
+chain.createDb(myPeerId.toString('hex'));
 console.log('myPeerId:',myPeerId.toString('hex'));
 
 const config = defaults({

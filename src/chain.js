@@ -1,6 +1,10 @@
 const {Block, BlockHeader} = require('./block'),
     moment = require('moment'),
-    CryptoJs = require('crypto-js');
+    CryptoJs = require('crypto-js'),
+    level = require('level'),
+    fs = require('fs');
+
+let db;
 
 const getGenesisBlock = () => {
     let blockHeader = new BlockHeader(1, null,
@@ -23,6 +27,7 @@ const generateNextBlock = txns => {
     const newBlock = new Block(blockHeader, nextIndex, txns);
 
     blockchain.push(newBlock);
+    storeBlock(newBlock);
     
     return newBlock;
 }
@@ -34,6 +39,7 @@ const addBlock = newBlock => {
         && 
         newBlock.blockHeader.previousBlockHeader === prevBlock.blockHeader.merkleRoot) {
             blockchain.push(newBlock);
+            storeBlock(newBlock);
         }
 }
 
@@ -45,6 +51,35 @@ const getBlock = index => {
     }
 }
 
+const createDb = peerId => {
+    let dir = __dirname + '/db/' + peerId;
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+        db = level(dir);
+        storeBlock(getGenesisBlock());
+    }
+}
+
+const storeBlock = newBlock => {
+    db.put(newBlock.index, JSON.stringify(newBlock), err => {
+        if (err) {
+            return console.log('Oops!', err);
+        }
+
+        console.log('--- Inserting block index:', newBlock.index);
+    });
+}
+
+const getDbBlock = (index, res) => {
+    db.get(index, (err, value) => {
+        if (err) {
+            return res.send(JSON.stringify(err));
+        }
+
+        return res.send(value);
+    });
+}
+
 const blockchain = [getGenesisBlock()];
 
 const chain = {
@@ -53,6 +88,8 @@ const chain = {
     getBlock,
     blockchain,
     getLatestBlock,
+    createDb,
+    getDbBlock,
 };
 
 module.exports = chain
